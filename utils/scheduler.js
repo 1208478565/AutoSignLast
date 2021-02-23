@@ -236,9 +236,9 @@ let scheduler = {
   },
   execTask: async (command, selectedTasks) => {
     console.log("🤨 开始执行任务");
-    if (process.env.GITHUB_ACTIONS) {
-      return;
-    }
+    //if (process.env.GITHUB_ACTIONS) {
+    //  return;
+    //}
     await scheduler.fetchTasks(command);
     if (Object.prototype.toString.call(selectedTasks) == "[object String]") {
       selectedTasks = selectedTasks.split(",").filter((q) => q);
