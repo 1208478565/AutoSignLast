@@ -3,11 +3,11 @@ name: daily-task
 
 on:
   
-  push: # push触发
-    branches: [ main ]
+  #push: # push触发
+    #branches: [ main ]
   workflow_dispatch: # 手动触发
-  schedule: # 计划任务触发
-    - cron: '*/30 20-23,0-15 * * *' # cron表达式，Actions时区是UTC时间，所以要往前推8个小时(4-23)
+  schedule:
+    - cron: '21 0/2 * * *'
     
 
 jobs:
@@ -43,38 +43,29 @@ jobs:
         node-version: ${{ matrix.node-version }}
         registry-url: ${{ matrix.node-registry }}
 
-    - name: Get npm cache directory
-      id: npm-cache
-      run: |
-        echo "::set-output name=dir::$(npm config get cache)"
-
-    - name: restore npm cache
-      uses: actions/cache@v2
-      id: use-npm-cache
-      with:
-        path: ${{ steps.npm-cache.outputs.dir }}
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-
-    - name: restore npm dependencies
-      uses: actions/cache@v2
-      id: use-npm-depends
-      with:
-        path: |
-          node_modules
-          */*/node_modules
-        key: ${{ runner.os }}-depends-${{ hashFiles('**/package-lock.json') }}
-
+    # 安装依赖
+    - name: Install dependencies
+      run: npm install
+      
+    - name: Set date time
+      id: date
+      run: echo "::set-output name=date::$(date +'%Y-%m-%d %H:%M')"
+    
+    - name: Set cache time
+      id: cdate
+      run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+    
     - name: restore task cache
       uses: actions/cache@v2
       id: use-task-cache
       with:
         path: |
           /home/runner/.AutoSignMachine
-        key: ${{ runner.os }}-task-${{ hashFiles('**/package-lock.json') }}
-
-    - name: Install dependencies
-      if: steps.use-npm-cache.outputs.cache-hit != 'true' || steps.use-npm-depends.outputs.cache-hit != 'true'
-      run: npm install
+        key: ${{ runner.os }}-task-${{ steps.date.outputs.date }}
+        restore-keys: |
+          ${{ runner.os }}-task-${{ steps.cdate.outputs.date }}
+          ${{ runner.os }}-
+     
        
     # 运行 52pojie 签到任务
     - name: Run 52pojie daily task
@@ -108,8 +99,8 @@ jobs:
     - name: Run unicom daily task
       if: ${{ env.ENABLE_UNICOM }}
       env:
-        user: ${{secrets.unicom_user}}
-        password: ${{secrets.unicom_password}}
-        appid: ${{secrets.unicom_appid}}
-      run: node index.js unicom --user=${user} --password=${password} --appid=${appid}
+        user: ${{ secrets.unicom_user }}
+        password: ${{ secrets.unicom_password }}
+        appid: ${{ secrets.unicom_appid }}
+      run: node index.js unicom --user=${user} --password=${password} --appid=${appid}  
 
